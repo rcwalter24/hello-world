@@ -95,6 +95,21 @@ class FilmScene(Scene):
         g = VGroup(n, t).arrange(RIGHT, buff=0.25).to_corner(UL, buff=0.5)
         return self._timed(g, start, dur, max_op=0.85)
 
+    def level(self, idx, color=WHITE_, start=0.0, dur=5.0):
+        """Difficulty ladder, top-right. idx: 0 BASICS, 1 HIGH SCHOOL, 2 UNIVERSITY, 3 FRONTIER.
+        Call once per beat; consecutive calls cross-fade, so the ladder visibly climbs inside an act."""
+        names = ["BASICS", "HIGH SCHOOL", "UNIVERSITY", "FRONTIER"]
+        items = [Text(n, font=FONT, font_size=17, color=(color if i == idx else DIM),
+                      weight=(BOLD if i == idx else NORMAL)) for i, n in enumerate(names)]
+        g = VGroup(*items).arrange(RIGHT, buff=0.32).to_corner(UR, buff=0.5)
+        return self._timed(g, start, dur, fade=0.35, max_op=0.9)
+
+    def badge(self, text, color, start=0.0, dur=5.0):
+        """Discipline badge under the concept tag (top-left): MATHEMATICS / PHYSICS / COMPUTER SCIENCE."""
+        m = Text(text, font=FONT, font_size=18, color=color, weight=BOLD)
+        m.to_corner(UL, buff=0.5).shift(DOWN * 0.5)
+        return self._timed(m, start, dur, fade=0.35, max_op=0.95)
+
     # ---- timing ---------------------------------------------------------
     def fade_all(self, t=0.6):
         objs = [m for m in self.mobjects if m.get_z_index() < 1000]

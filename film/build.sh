@@ -6,8 +6,8 @@ cd "$(dirname "$0")"
 PY=${PY:-/opt/mv/bin/python}
 MANIM="$PY -m manim"
 Q=${1:-h}
-declare -A FILES=( [act0]=act0_point.py [act1]=act1_basics.py [act2]=act2_highschool.py
-                   [act3]=act3_university.py [act4]=act4_beyond.py [act5]=act5_frontier.py
+declare -A FILES=( [act0]=act0_point.py [act1]=act1_rotation.py [act2]=act2_minimize.py
+                   [act3]=act3_information.py [act4]=act4_selfref.py [act5]=act5_quantum.py
                    [act6]=act6_finale.py )
 declare -A CLS=( [act0]=Act0 [act1]=Act1 [act2]=Act2 [act3]=Act3 [act4]=Act4 [act5]=Act5 [act6]=Act6 )
 declare -A DUR=( [act0]=15 [act1]=25 [act2]=30 [act3]=35 [act4]=35 [act5]=28 [act6]=12 )
