@@ -223,7 +223,7 @@ class Act3(FilmScene):
         res = MathTex(r"1+1=", r"10_2").scale(0.95).move_to(P3(5.35, 0.25))
         res[1].set_color(MAGENTA)
         self.play(Write(res), run_time=0.6)                                                       # 5.95
-        self.until(6.6)                                                                           # 6.6
+        self.until(6.2)                                                                           # 6.2
         self.A_left = VGroup(dimh, xor, andg, xor_nm, and_nm, srcA, srcB, lA, lB, jd, *litw_in,
                              litw_c, sumb, carb, sl, cl, res)
 
@@ -260,7 +260,8 @@ class Act3(FilmScene):
         coin = label("each answer: a fair coin flip, probability 1/2  =  1 bit", DIM, 22).move_to(P3(0, -1.2))
 
         # hand-off A -> B: half-adder dissolves, the row of tiles appears in its place
-        self.play(FadeOut(self.A_left), FadeIn(tiles), FadeIn(box), FadeIn(lab), FadeIn(top),
+        self.play(FadeOut(self.A_left), run_time=0.4)                                   # 6.6
+        self.play(FadeIn(tiles), FadeIn(box), FadeIn(lab), FadeIn(top),
                   FadeIn(reg_lab), run_time=0.6)                                        # 7.2
         lo, hi = 0, N - 1
         bits = []

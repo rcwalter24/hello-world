@@ -30,7 +30,7 @@ B_COL = "#7C8CFF"
 X0R, YB, RR = -5.0, 0.3, 0.8                 # rolling circle
 B_CX, B_CY, B_R, B_X0 = -4.75, 0.5, 1.25, -3.0
 C_CX, C_CY, C_R, C_X0 = -4.75, 0.0, 1.0, -3.3
-D_R, D_X0 = 1.2, -2.2
+D_R, D_X0, D_CX = 1.2, -1.9, -4.35
 EMD = np.array([0.59, 0.34])                 # oblique direction of the B field
 
 
@@ -612,7 +612,7 @@ class Act1(FilmScene):
             bars.append(b)
         spec_base = Line([SPX0 - 0.3, SPBASE, 0], [SPX0 + SPDX * (NH - 1) + 0.3, SPBASE, 0]).set_stroke(DIM, 1.6, 0.8)
         lab_s = Text("samples", font=FONT, font_size=20, color=MAGENTA).move_to([-3.6, -0.75, 0])
-        lab_f = Text("spectrum: how strong is each rotation", font=FONT, font_size=20, color=DIM
+        lab_f = Text("spectrum: how strong is each rotation", font=FONT, font_size=20, color="#8B93A8"
                      ).move_to([3.65, -0.75, 0])
         c3 = Text("keep 3 rotations: a rough copy", font=FONT, font_size=28, color=WHITE_,
                   t2c={"3": MAGENTA}).move_to([0, -1.55, 0])
@@ -632,7 +632,8 @@ class Act1(FilmScene):
             (15.0, tw(tr["hue"], 2.0, 0.6)),
             (15.0, tw(tr["R"], D_R, 0.6)),
             (15.0, tw(tr["x0"], D_X0, 0.6)),
-            (15.0, tw(tr["Lx"], 8.5, 0.6)),
+            (15.0, tw(tr["Lx"], 8.2, 0.6)),
+            (15.0, tw(tr["cx"], D_CX, 0.6)),
             (15.0, tw(tr["vEM"], 0.0, 0.5)),
             (15.0, tw(tr["vCurve"], 1.0, 0.5)),
             (15.0, tw(th, 5 * PI, 2.4, trap(0.25, 0.3))),
@@ -679,7 +680,7 @@ class Act1(FilmScene):
         self.cap("At the frontier, the same idea links primes, geometry and symmetry.", 21.1, 24.6)
 
         # ---- zeta zeros
-        SX, SW, Y0, SC = -3.6, 1.5, -2.0, 0.085
+        SX, SW, Y0, SC = -3.6, 1.5, -2.0, 0.075
         H = 52.5 * SC
         strip = Rectangle(width=SW, height=H + 0.3, stroke_width=0).set_fill(GOLD, 0.06)
         strip.move_to([SX, Y0 + (H + 0.3) / 2 - 0.15, 0])
@@ -687,7 +688,7 @@ class Act1(FilmScene):
                               stroke_color=GOLD, stroke_opacity=0.4) for dx in (-SW / 2, SW / 2)])
         zbase = Line([SX - SW / 2 - 0.2, Y0, 0], [SX + SW / 2 + 0.2, Y0, 0], stroke_width=1.4, stroke_color=DIM)
         crit = neon(DashedLine([SX, Y0, 0], [SX, Y0 + H + 0.1, 0], dash_length=0.12), GOLD, 2.4)
-        crit_lab = MathTex(r"\mathrm{Re}(s)=\tfrac12", color=GOLD).scale(0.62).move_to([SX, 2.72, 0])
+        crit_lab = MathTex(r"\mathrm{Re}(s)=\tfrac12", color=GOLD).scale(0.62).move_to([SX, 2.3, 0])
         zero_dots = VGroup(*[glow_dot([SX, Y0 + g * SC, 0], GOLD, r=0.065, layers=4) for g in ZEROS])
         WX0, WX1, WY = -0.8, 6.0, 0.15
         wave_axis = Line([WX0, WY, 0], [WX1, WY, 0], stroke_width=1.2, stroke_color=DIM, stroke_opacity=0.7)
