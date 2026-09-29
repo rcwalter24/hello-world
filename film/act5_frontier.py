@@ -197,7 +197,7 @@ def two_tone_link(p, q, cols, w=3.0):
     return ln
 
 
-def equals_link(centre, cols, half=0.26, gap=0.085):
+def equals_link(centre, cols, half=0.24, gap=0.1):
     c = np.array(centre, dtype=float)
     return VGroup(two_tone_link(c + UP * gap + LEFT * half, c + UP * gap + RIGHT * half, cols),
                   two_tone_link(c + DOWN * gap + LEFT * half, c + DOWN * gap + RIGHT * half, cols))
@@ -232,15 +232,23 @@ class Act5(FilmScene):
                 st["off"] -= P_
             levels()
 
-        def slide(old, new, weights, rt=0.8, extra=()):
+        def slide(old, new, weights, old_title=None, new_title=None, rt=0.8, extra=()):
             """Camera-slide: old content leaves left, new enters from the right,
-            the braid speeds up and the strand weights re-tune to the new topic."""
+            the braid speeds up and the strand weights re-tune to the new topic.
+            Titles cross-fade in place (old out first, then new in)."""
             anims = [SPD.animate(rate_func=there_and_back).set_value(1.7)]
             anims += [w.animate.set_value(x) for w, x in zip(W, weights)]
             if old is not None:
-                anims.append(FadeOut(old, shift=LEFT * 1.8))
+                anims.append(Succession(FadeOut(old, shift=LEFT * 1.8, run_time=0.55), Wait(0.25)))
             if new is not None:
-                anims.append(FadeIn(new, shift=LEFT * 1.8))
+                anims.append(Succession(Wait(0.25), FadeIn(new, shift=LEFT * 1.8, run_time=0.55)))
+            seq = []
+            if old_title is not None:
+                seq.append(FadeOut(old_title, run_time=0.3))
+            if new_title is not None:
+                seq.append(FadeIn(new_title, run_time=0.4))
+            if seq:
+                anims.append(Succession(*seq))
             self.play(*anims, *extra, run_time=rt)
 
         # =====================================================================
@@ -249,7 +257,9 @@ class Act5(FilmScene):
         self.tag("05", "FRONTIER", WHITE_, start=0.3, dur=3.6)
         vis = sorted([p for p in flat if p.xr > -7.6 and p.xl < 7.6], key=lambda p: p.xl)
         self.add(*[p for p in flat if p not in vis])
-        self.play(LaggedStart(*[Create(p) for p in vis], lag_ratio=0.03), run_time=1.0)   # 1.0
+        self.play(AnimationGroup(*[
+            Succession(*[Create(p, run_time=1.0 / sum(1 for q in vis if q.strand == i), rate_func=linear)
+                         for p in vis if p.strand == i]) for i in range(3)]), run_time=1.0)   # 1.0
         self.play(AnimationGroup(*[Transform(f, b) for f, b in zip(flat, target)]),
                   run_time=1.2)                                                            # 2.2
         for f_, b_ in zip(flat, target):
@@ -277,7 +287,7 @@ class Act5(FilmScene):
 
         vec = vec_at(0.0)
         big = VGroup(bloch, lat, lbl0, lbl1, vec)
-        slide(None, VGroup(title1, big), [DM, BR, BR])                                     # 3.0
+        slide(None, big, [DM, BR, BR], None, title1)                                     # 3.0
         vec.add_updater(lambda m: m.become(vec_at(phi.get_value())))
         self.play(phi.animate.set_value(2.35 * np.pi), run_time=1.4, rate_func=linear)     # 4.4
         vec.clear_updaters()
@@ -334,7 +344,7 @@ class Act5(FilmScene):
         ans = glow_dot([tipx, YB + v4[MARK] * HS, 0], MAGENTA, r=0.07, layers=4)
         ans_t = Text("answer", font=FONT, font_size=20, color=MAGENTA).move_to([tipx, YB + v4[MARK] * HS + 0.3, 0])
         self.play(FadeIn(ans), FadeIn(ans_t), run_time=0.3)                                # 7.4
-        t1 = VGroup(title1, qubits, ket, fact, base_line, xlabels, lbl_i, bars, ans, ans_t)
+        t1 = VGroup(qubits, ket, fact, base_line, xlabels, lbl_i, bars, ans, ans_t)
 
         # =====================================================================
         # 2. AdS/CFT HOLOGRAPHY (cyan x gold)   7.4 - 11.4   (4.0 s)
@@ -377,8 +387,8 @@ class Act5(FilmScene):
             pdots.add(glow_dot(s, WHITE_, r=0.045, layers=3))
             plines.add(Line(s, e).set_stroke(CYAN, 1.8, 0.55))
             pends.append(e)
-        static2 = VGroup(title2, disk, ticks, lab_b, lab_c, pdots)
-        slide(t1, static2, [BR, DM, BR])                                                   # 8.2   (T1 out)
+        static2 = VGroup(disk, ticks, lab_b, lab_c, pdots)
+        slide(t1, static2, [BR, DM, BR], title1, title2)                                                   # 8.2   (T1 out)
         ticks.add_updater(tick_upd)
         per_layer, npoly = hyperbolic_tiling(7, 3, 4)
         tiles = VGroup()
@@ -397,7 +407,7 @@ class Act5(FilmScene):
                   run_time=1.6)                                                            # 10.7
         self.wait(0.7)                                                                     # 11.4
         ticks.clear_updaters()
-        t2 = VGroup(title2, disk, ticks, lab_b, lab_c, pdots, tiles, plines)
+        t2 = VGroup(disk, ticks, lab_b, lab_c, pdots, tiles, plines)
 
         # =====================================================================
         # 3. LANGLANDS (gold x gold)   11.4 - 15.4   (4.0 s)
@@ -473,8 +483,8 @@ class Act5(FilmScene):
         b2, p2a, p2b = bridge(cG, cS, GOLD2)
         b3, p3a, p3b = bridge(cS, cN, AMBER)
         ports = VGroup(*[glow_dot(p, WHITE_, r=0.05, layers=3) for p in (p1a, p1b, p2a, p2b, p3a, p3b)])
-        static3 = VGroup(title3, rN, rG, rS, nN, nG, nS, numbers, curve, sym, ports)
-        slide(t2, static3, [BR, DM, DM])                                  # 12.2  (T2 out)
+        static3 = VGroup(rN, rG, rS, nN, nG, nS, numbers, curve, sym, ports)
+        slide(t2, static3, [BR, DM, DM], title2, title3)                                  # 12.2  (T2 out)
         # math x math: only the gold strand stays lit
         pulses = []
         for arc, col in ((b1, GOLD), (b2, GOLD2), (b3, AMBER)):
@@ -548,9 +558,9 @@ class Act5(FilmScene):
                 s = np.sin(w * t + ph)
                 sq.set_fill(col, ramp * 0.34 * max(0.0, s) ** 3)
 
-        static4 = VGroup(title4, halo, lat_edges, nodes, bh, bits)
+        static4 = VGroup(halo, lat_edges, nodes, bh, bits)
         halo.set_z_index(0); bh.set_z_index(3); bits.set_z_index(4)
-        slide(t3, static4, [BR, BR, BR])                                                   # 16.2  (T3 out)
+        slide(t3, static4, [BR, BR, BR], title3, title4)                                                   # 16.2  (T3 out)
         bits.add_updater(bit_upd)
         plaq.add_updater(plaq_upd)
         plaq.set_z_index(-1)
@@ -582,18 +592,21 @@ class Act5(FilmScene):
         top_arc = ArcBetweenPoints([xs5[0], BXY + BHT / 2, 0], [xs5[2], BXY + BHT / 2, 0], angle=-0.6)
         top_arc.set_stroke([GOLD, MAGENTA, CYAN], width=2.4)
         top_arc.set_stroke([GOLD, MAGENTA, CYAN], width=7.5, opacity=0.16, background=True)
-        eq3 = equals_link(top_arc.point_from_proportion(0.5) + UP * 0.02, [MAGENTA, MAGENTA], half=0.2, gap=0.07)
-        static5 = VGroup(title5, boxes, names)
-        slide(t4, static5, [BR, BR, BR])                                                   # 20.2  (T4 out)
+        eq3 = equals_link(top_arc.point_from_proportion(0.5), [MAGENTA, MAGENTA], half=0.3, gap=0.1)
+        eq3.set_z_index(2)
+        eq3_bg = Circle(radius=0.3).move_to(top_arc.point_from_proportion(0.5)).set_fill(BG, 1.0).set_stroke(width=0)
+        eq3_bg.set_z_index(1)
+        static5 = VGroup(boxes, names)
+        slide(t4, static5, [BR, BR, BR], title4, title5)                                                   # 20.2  (T4 out)
         self.play(LaggedStart(Write(f_logic), Write(f_code), Write(f_phys), lag_ratio=0.35),
                   run_time=1.0)                                                            # 21.2
-        self.play(FadeIn(eq1, scale=1.3), FadeIn(eq2, scale=1.3), Create(top_arc), FadeIn(eq3),
+        self.play(FadeIn(eq1, scale=1.3), FadeIn(eq2, scale=1.3), Create(top_arc), FadeIn(eq3), FadeIn(eq3_bg),
                   run_time=0.5)                                                            # 21.7
         self.play(ShowPassingFlash(top_arc.copy().set_stroke(WHITE_, 7, 1.0), time_width=0.5),
                   Indicate(eq1, scale_factor=1.15, color=WHITE_), Indicate(eq2, scale_factor=1.15, color=WHITE_),
                   run_time=1.0)                                                            # 22.7
         self.wait(0.7)                                                                     # 23.4
-        t5 = VGroup(static5, f_logic, f_code, f_phys, eq1, eq2, eq3, top_arc)
+        t5 = VGroup(static5, f_logic, f_code, f_phys, eq1, eq2, eq3, eq3_bg, top_arc)
 
         # =====================================================================
         # FINALE: strands converge on the centre, brightening   23.4 - 27.3
@@ -607,7 +620,7 @@ class Act5(FilmScene):
             xs = np.linspace(-7.5, 7.5, 160)
             g = VGroup()
             for i, col in enumerate(STR_COLS):
-                env = 1 - cv * np.exp(-(xs / (3.6 - 1.4 * cv)) ** 2)
+                env = 1 - cv * (1 - np.minimum(1.0, np.abs(xs) / 5.5) ** 1.1)
                 ys = Y0 * (1 - cv) + AMP * (1 - 0.2 * cv) * env * np.sin(K_ * (xs + ph) + STR_PH[i])
                 m = VMobject().set_points_smoothly([[x, y, 0] for x, y in zip(xs, ys)])
                 wd = 3.5 + 3.5 * bv
@@ -620,7 +633,7 @@ class Act5(FilmScene):
         strands.set_z_index(-4)
         off0 = st["off"]
         self.add(strands)
-        self.play(FadeOut(t5, shift=LEFT * 1.8),
+        self.play(FadeOut(t5, shift=LEFT * 1.8), FadeOut(title5),
                   L.animate.set_value(0.0), B.animate.set_value(0.5),
                   PHT.animate(rate_func=linear).set_value(off0 + 0.22 * 0.8),
                   *[w.animate.set_value(1.0) for w in W],

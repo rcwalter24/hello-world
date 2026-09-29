@@ -676,8 +676,9 @@ class Act4(FilmScene):
         land.move_to(LC)
         land.set_resampling_algorithm(RESAMPLING_ALGORITHMS["linear"])
         lab_L = MathTex(r"L(\theta)", color=MAGENTA).scale(0.9).move_to([-5.05, -0.25, 0])
-        self.play(net.animate.scale(0.29).move_to([-5.0, 1.45, 0]), FadeIn(land), FadeIn(lab_L),
-                  run_time=0.7)                                                      # 0.7
+        self.play(net.animate.scale(0.29).move_to([-5.0, 1.45, 0]),
+                  Succession(Wait(0.35), AnimationGroup(FadeIn(land), FadeIn(lab_L), run_time=0.45)),
+                  run_time=0.8)                                                      # 0.8
         P = np.column_stack([gd_path[:, 0], gd_path[:, 1], np.zeros(len(gd_path))]) + LC
         prog = ValueTracker(0.0)
         trail = VMobject()
@@ -700,7 +701,7 @@ class Act4(FilmScene):
         start_marker = Circle(radius=0.16, stroke_color=WHITE_, stroke_width=1.6, stroke_opacity=0.7).move_to(P[0])
         self.add(trail, ball)
         self.add(start_marker)
-        self.play(prog.animate.set_value(1.0), run_time=2.3, rate_func=smooth)   # 3.0
+        self.play(prog.animate.set_value(1.0), run_time=2.2, rate_func=smooth)   # 3.0
         ring = Circle(radius=0.12, stroke_color=WHITE_, stroke_width=3).move_to(P[-1])
         self.play(ring.animate.scale(4.5).set_stroke(opacity=0), run_time=0.4)     # 3.4
         ls_grp = Group(net, land, lab_L, trail, ball, start_marker, ring)
