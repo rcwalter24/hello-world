@@ -1,0 +1,4 @@
+media/
+out/
+__pycache__/
+audio/music.wav
