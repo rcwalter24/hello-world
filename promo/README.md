@@ -3,7 +3,10 @@
 An animated promo film (English) on the beauty of **mathematics, physics and computation**,
 from counting dots to the open problems at the edge of knowledge.
 
-- Final video: `output/the_unreasonable_beauty.mp4` (1080p30, with synthesized soundtrack)
+- Final video (1080p30, 8:28, with synthesized soundtrack, 104 MB) is stored as a split zip:
+  `output/the_unreasonable_beauty.zip` + `.z01` + `.z02`. Download all three into one folder and
+  open the `.zip` with 7-Zip / WinRAR / Bandizip (or `7z x the_unreasonable_beauty.zip`) to get
+  `the_unreasonable_beauty.mp4`.
 - Concept & storyboard (中文): [`STORYBOARD.md`](STORYBOARD.md)
 
 ## Chapters

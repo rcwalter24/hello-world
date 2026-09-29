@@ -1,4 +1,5 @@
 build/
+output/*.mp4
 output/*.wav
 output/concat.txt
 __pycache__/
