@@ -352,16 +352,22 @@ class Act3(FilmScene):
 
         # hand-off B -> C: the same 64 tiles fly into the box as particles
         anims = [Transform(t, d) for t, d in zip(tiles, targets)]
-        self.play(AnimationGroup(*anims, lag_ratio=0.01),
-                  FadeOut(self.B_extra), FadeIn(box), FadeIn(part), FadeIn(wtxt), FadeIn(btxt),
-                  FadeIn(bar), run_time=1.4)                                             # 14.4
+        self.play(AnimationGroup(*anims, lag_ratio=0.01, run_time=1.4),
+                  FadeOut(self.B_extra, run_time=0.5),
+                  FadeIn(box, run_time=0.8), FadeIn(part, run_time=0.8),
+                  FadeIn(wtxt, run_time=0.8), FadeIn(btxt, run_time=0.8),
+                  FadeIn(bar, run_time=0.8))                                             # 14.4
+        # the animation group swallowed `tiles` into a throw-away Group: rebuild a scene-level swarm
+        self.remove(*list(tiles))
+        tiles = VGroup(*list(tiles))
+        self.add(tiles)
 
         # ---- physics of the gas -------------------------------------------
         st = {"go": False, "rel": False, "t": 0.0, "ct": 0.0, "acc": 0.0, "nl": float(NP),
               "shown": (-1, -1)}
         P = slots.copy()
         ang = rng.uniform(0, TAU, NP)
-        spd = rng.uniform(1.0, 2.7, NP)
+        spd = rng.uniform(0.7, 1.7, NP)
         V = np.stack([np.cos(ang) * spd, np.sin(ang) * spd], 1)
         C_GOLD, C_CYAN = ManimColor(GOLD), ManimColor(CYAN)
 
@@ -419,8 +425,8 @@ class Act3(FilmScene):
 
         # ---- Shannon vs Boltzmann, same shape ------------------------------
         PX = 3.6
-        lab1 = label("information  ·  Shannon", GOLD, 20).move_to(P3(PX, 2.5))
-        Hf = MathTex("H", "=", r"-\sum_i", "p_i", r"\log", "p_i", color=GOLD).scale(1.1).move_to(P3(PX, 1.95))
+        lab1 = label("information  ·  Shannon", GOLD, 20).move_to(P3(PX, 2.7))
+        Hf = MathTex("H", "=", r"-\sum_i", "p_i", r"\log", "p_i", color=GOLD).scale(1.1).move_to(P3(PX, 1.85))
         Hf[4].set_color(WHITE_)
         brg = MathTex(r"p_i=\tfrac{1}{W}", r"\;\Rightarrow\;", "H", "=", r"\log", "W", color=GOLD)
         brg.scale(0.95).move_to(P3(PX, 0.85))
@@ -506,17 +512,17 @@ class Act3(FilmScene):
         recv_x = [RX + o for o in offs]
         recv_p = self.transmit(sent_p, recv_x, {2: "0"}, 40)                             # 23.85
         ring = Circle(radius=0.32, color=WHITE_, stroke_width=2.5).move_to(recv_p[2])
-        bad = Text("one bit flipped, and nobody can tell", font=FONT, font_size=22,
+        bad = Text("one flip: undetected", font=FONT, font_size=22,
                    color=DIM).move_to(P3(RX, Y_PLAIN - 0.75))
         self.play(Create(ring), FadeIn(bad), run_time=0.4)                               # 24.25
         self.until(24.4)
 
         # ---- 2. add redundancy: every bit is sent three times -------------
         old_row = VGroup(*sent_p, *recv_p, ring, bad)
-        centres = [-1.8, -0.6, 0.6, 1.8]
+        centres = [-1.65, -0.55, 0.55, 1.65]
         sent_c, blocks = [], []
         for b, c in zip(msg, centres):
-            blk = [bit_txt(str(b), MAGENTA, 30).move_to(P3(SX + c + d, Y_CODE)) for d in (-0.34, 0, 0.34)]
+            blk = [bit_txt(str(b), MAGENTA, 30).move_to(P3(SX + c + d, Y_CODE)) for d in (-0.31, 0, 0.31)]
             blocks.append(blk)
             sent_c += blk
         rep = label("repeat each bit three times", DIM, 20).move_to(P3(SX, Y_CODE + 0.75))
@@ -527,7 +533,7 @@ class Act3(FilmScene):
         self.play(old_row.animate.set_opacity(0.25), *copy_anims, FadeIn(rep), run_time=0.7)   # 25.1
 
         # ---- 3. coded transmission with two flips, then majority vote -----
-        recv_cx = [RX + c + d for c in centres for d in (-0.34, 0, 0.34)]
+        recv_cx = [RX + c + d for c in centres for d in (-0.31, 0, 0.31)]
         flips = {1: "0", 8: "0"}
         recv_c = self.transmit(sent_c, recv_cx, flips, 30)                               # 26.25
         rings = VGroup(*[Circle(radius=0.26, color=WHITE_, stroke_width=2.5).move_to(recv_c[i])
@@ -538,7 +544,7 @@ class Act3(FilmScene):
                                 stroke_width=2.5, max_tip_length_to_length_ratio=0.3)
                           for c in centres])
         dec = [bit_txt(str(b), MAGENTA, 40).move_to(P3(RX + c, Y_DEC)) for b, c in zip(msg, centres)]
-        vote = label("majority vote", DIM, 20).move_to(P3(RX, Y_CODE - 0.75))
+        vote = label("majority vote", DIM, 22).next_to(P3(RX + centres[0], Y_DEC), LEFT, buff=0.55)
         ok = Text("✓  repaired", font=FONT, font_size=26, color=WHITE_).move_to(P3(RX, Y_DEC - 0.75))
         self.play(Create(rings), run_time=0.3)                                           # 26.55
         self.play(LaggedStart(Create(unders), FadeIn(vote), lag_ratio=0.1),
@@ -558,7 +564,7 @@ class Act3(FilmScene):
         a1 = []
         for i, c in enumerate(copies):
             y = c.get_center()[1]
-            tx = 0.0 if i in flips else dest_xs[i]
+            tx = (c.get_center()[0] + dest_xs[i]) / 2 if i in flips else dest_xs[i]
             a1.append(c.animate.move_to(P3(tx, y)))
         self.play(*a1, run_time=0.55, rate_func=smooth)
         news = {}
@@ -642,7 +648,7 @@ class Act3(FilmScene):
         plaq.add_updater(plaq_upd)
         self.add(bits, plaq)
         # hand-off D -> E: the channel fades, the horizon and its code fade in
-        self.play(FadeOut(self.D_all), FadeIn(static), run_time=0.7)                     # 29.0
+        self.play(FadeOut(self.D_all, run_time=0.35), FadeIn(static, run_time=0.7))                     # 29.0
 
         # horizon entropy ~ area
         NX = 5.3
@@ -654,9 +660,17 @@ class Act3(FilmScene):
                   ShowPassingFlash(area, time_width=0.9), run_time=1.0)             # 30.0
         self.remove(area)
         # information ripples out through the code
-        rings = [Circle(radius=HR + 0.05).move_to(HC).set_stroke(CYAN, width=3, opacity=0.8) for _ in range(2)]
-        self.play(LaggedStart(*[r.animate.scale(3.0).set_stroke(opacity=0.0) for r in rings],
-                              lag_ratio=0.5), run_time=2.6, rate_func=linear)             # 32.6
+        def ripple(delay):
+            ring = Circle(radius=HR + 0.1).move_to(HC).set_stroke(CYAN, width=0, opacity=0)
+
+            def f(m, a):
+                a2 = min(1.0, max(0.0, (a - delay) / (1 - delay)))
+                if a2 <= 0:
+                    return
+                m.become(Circle(radius=HR + 0.1 + 2.6 * a2).move_to(HC)
+                         .set_stroke(CYAN, width=4, opacity=0.9 * (1 - a2) ** 1.2))
+            return UpdateFromAlphaFunc(ring, f, run_time=2.6, rate_func=linear)
+        self.play(ripple(0.0), ripple(0.35), run_time=2.6)                                # 32.6
         self.until(34.3)
         bits.clear_updaters()
         plaq.clear_updaters()

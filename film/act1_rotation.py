@@ -55,11 +55,14 @@ def trap(a=0.25, b=0.3):
 
 
 def tw(tracker, value, dur, rate=smooth):
-    """Tween a ValueTracker to `value` (start value read when the tween starts)."""
+    """Tween a ValueTracker to `value`.  Start value is read on the first call with a>0
+    (Animation.begin() also calls interpolate(0), which must not count)."""
     st = {"v0": None}
 
     def f(_m, a):
         if st["v0"] is None:
+            if a <= 0:
+                return
             st["v0"] = tracker.get_value()
         tracker.set_value(st["v0"] + (value - st["v0"]) * a)
     return UpdateFromAlphaFunc(tracker, f, run_time=dur, rate_func=rate)
@@ -68,11 +71,11 @@ def tw(tracker, value, dur, rate=smooth):
 def Do(fn):
     st = {"done": False}
 
-    def f(_m, _a):
-        if not st["done"]:
+    def f(_m, a):
+        if a > 0 and not st["done"]:
             st["done"] = True
             fn()
-    return UpdateFromAlphaFunc(Mobject(), f, run_time=1 / 30, rate_func=linear)
+    return UpdateFromAlphaFunc(Mobject(), f, run_time=1 / 15, rate_func=linear)
 
 
 def seg_pts(P0, P1):
@@ -87,6 +90,44 @@ def set_segs(vm, P0, P1):
         vm.set_points(seg_pts([[0, 0, 0]], [[0, 0, 0.0]]))
     else:
         vm.set_points(seg_pts(P0, P1))
+
+
+class Timed(AnimationGroup):
+    """AnimationGroup with explicit absolute start times (seconds from group start).
+    Delayed introducers are hidden until their turn; nothing suspends updaters."""
+
+    def __init__(self, events, total):
+        anims = [a for _, a in events]
+        super().__init__(*anims, lag_ratio=0, suspend_mobject_updating=False)
+        awt = self.anims_with_timings
+        for k, (t0, a) in enumerate(events):
+            awt["start"][k] = t0
+            awt["end"][k] = t0 + a.run_time
+        end = max(total, float(awt["end"].max()))
+        if end > total + 1e-6:
+            print(f"!! Timed: an event ends at {end:.2f} > {total:.2f}")
+        self.max_end_time = end
+        self.run_time = end
+        self._events = events
+
+        def nosusp(an):
+            an.suspend_mobject_updating = False
+            for c in getattr(an, "animations", []):
+                nosusp(c)
+        for a in anims:
+            nosusp(a)
+
+    def begin(self):
+        super().begin()
+
+        def hide(an):
+            for c in getattr(an, "animations", []):
+                hide(c)
+            if an.is_introducer() and not hasattr(an, "animations"):
+                an.interpolate(0)
+        for t0, a in self._events:
+            if t0 > 1e-6:
+                hide(a)
 
 
 def live(m):
@@ -149,15 +190,11 @@ class Act1(FilmScene):
     def timeline(self, t_end, events):
         """Run animations that start at absolute times; the call returns at t_end."""
         now = self.now()
-        items = []
-        for t0, an in events:
-            d = t0 - now
-            items.append(Succession(Wait(d), an) if d > 0.02 else an)
         rt = t_end - now
         if rt <= 0.02:
             print(f"!! timeline overrun at {now:.2f} (wanted {t_end})")
             return
-        self.play(AnimationGroup(*items, Wait(rt)))
+        self.play(Timed([(max(0.0, t0 - now), an) for t0, an in events], rt))
 
     def mark(self, s):
         print(f"[act1] {s}: t={self.now():.2f}")
@@ -339,7 +376,7 @@ class Act1(FilmScene):
     def beat_A(self):
         tr = self.tr
         self.tag("01", "ROTATION", WHITE_, start=0.2, dur=3.6)
-        self.badge("MATHEMATICS", GOLD, start=0.2, dur=6.4)
+        self.badge("MATHEMATICS", GOLD, start=0.2, dur=6.15)
         self.level(0, GOLD, start=0.2, dur=5.0)
         self.cap("Spin a point around a circle, and a wave appears.", 1.5, 5.0)
 
@@ -375,7 +412,7 @@ class Act1(FilmScene):
         ev = [
             (0.0, FadeIn(base, run_time=0.4)),
             (0.0, tw(tr["vRig"], 1.0, 0.4)),
-            (0.4, UpdateFromAlphaFunc(self.driver, roll, run_time=1.2, rate_func=smooth)),
+            (0.4, UpdateFromAlphaFunc(Mobject(), roll, run_time=1.2, rate_func=smooth)),
             (1.6, LaggedStart(*[Create(b) for b in bars], lag_ratio=0.35, run_time=0.7)),
             (1.6, LaggedStart(*[FadeIn(d, shift=UP * 0.1) for d in dlabs], lag_ratio=0.35, run_time=0.7)),
             (2.3, Create(sliver, run_time=0.25)),
@@ -401,7 +438,7 @@ class Act1(FilmScene):
         self.level(1, GOLD, start=0.0, dur=1.6)
         self.level(1, CYAN, start=1.4, dur=4.0)
         self.cap("Nature is full of waves: water, sound, light.", 5.4, 10.0)
-        self.badge("PHYSICS", CYAN, start=6.2 - self.now(), dur=4.0)
+        self.badge("PHYSICS", CYAN, start=6.4 - self.now(), dur=3.9)
 
         self.wt = ValueTracker(0.0)
         self.wop = ValueTracker(0.0)
@@ -456,7 +493,7 @@ class Act1(FilmScene):
     # ================================================================ C  10 - 15
     def beat_C(self):
         tr = self.tr
-        self.badge("PHYSICS", CYAN, start=0.0, dur=5.5)
+        self.badge("PHYSICS", CYAN, start=0.0, dur=5.1)
         self.level(2, CYAN, start=0.0, dur=5.3)
         self.cap("Electric and magnetic fields chase each other. That is light.", 10.4, 15.0)
         wt, wop, th = self.wt, self.wop, tr["th"]
@@ -519,6 +556,7 @@ class Act1(FilmScene):
             (10.75, tw(th, 3 * PI, 2.45, trap(0.22, 0.3))),
             (10.9, tw(tr["Lx"], 9.5, 1.3)),
             (10.9, tw(tr["vEM"], 1.0, 0.7)),
+            (10.9, tw(tr["vConn"], 1.0, 0.5)),
             (11.1, FadeIn(legend, run_time=0.4)),
             (11.4, FadeIn(lab_t, run_time=0.3)),
             # arrives at theta = pi
@@ -540,15 +578,17 @@ class Act1(FilmScene):
     def beat_D(self):
         tr = self.tr
         th = tr["th"]
-        self.level(2, GOLD, start=-0.2, dur=3.0)
+        self.level(2, GOLD, start=0.0, dur=3.0)
         self.level(2, MAGENTA, start=2.6, dur=3.7)
-        self.badge("MATHEMATICS", GOLD, start=0.05, dur=3.0)
-        self.badge("COMPUTER SCIENCE", MAGENTA, start=2.7, dur=3.6)
+        self.badge("MATHEMATICS", GOLD, start=0.15, dur=2.55)
+        self.badge("COMPUTER SCIENCE", MAGENTA, start=2.75, dur=3.5)
         self.cap("Any signal is a sum of rotations. That is how we compress sound and images.", 15.3, 21.0)
 
         # ---- spectrum of the sampled square wave
         SPX0, SPDX, SPBASE, SPH = 1.0, 0.33, -0.3, 1.5
         specT = ValueTracker(0.0)
+        barvis = ValueTracker(1.0)
+        self.barvis = barvis
         keep = tr["keep"]
         bars = []
         for i in range(NH):
@@ -566,7 +606,7 @@ class Act1(FilmScene):
                                          [x + w / 2, SPBASE + h, 0], [x - w / 2, SPBASE + h, 0],
                                          [x - w / 2, SPBASE, 0]])
                 k = float(np.clip(keep.get_value() - i, 0, 1))
-                m.set_fill(MAGENTA, (0.15 + 0.75 * k) * (1.0 if grow > 0.01 else 0.0))
+                m.set_fill(MAGENTA, (0.15 + 0.75 * k) * (1.0 if grow > 0.01 else 0.0) * barvis.get_value())
             b.add_updater(upd)
             upd(b)
             bars.append(b)
@@ -579,7 +619,7 @@ class Act1(FilmScene):
         c8 = Text("keep 8 rotations: almost the same", font=FONT, font_size=28, color=WHITE_,
                   t2c={"8": MAGENTA}).move_to([0, -1.55, 0])
         self.add(*bars)
-        self.d_objs = [*bars, spec_base, lab_s, lab_f]
+        self.d_objs = [spec_base, lab_s, lab_f]
         self.c3, self.c8 = c3, c8
 
         def to_gold_stage():
@@ -653,6 +693,7 @@ class Act1(FilmScene):
         wave_axis = Line([WX0, WY, 0], [WX1, WY, 0], stroke_width=1.2, stroke_color=DIM, stroke_opacity=0.7)
         wave_lab = MathTex(r"\sum_{\gamma}\cos(\gamma\, u)", color=CYAN).scale(0.7).move_to([2.6, 1.75, 0])
         n_tr = ValueTracker(0.0)
+        wvis = ValueTracker(1.0)
         wave = VMobject()
         uu = np.linspace(0.25, 4.65, 460)
         gam = np.array(ZEROS)
@@ -665,7 +706,7 @@ class Act1(FilmScene):
             y = 1.15 * np.tanh(y / 1.15)
             xs = WX0 + (WX1 - WX0) * (uu - uu[0]) / (uu[-1] - uu[0])
             m.set_points_as_corners(np.column_stack([xs, WY + 1.0 * y, np.zeros_like(xs)]))
-            m.set_stroke([CYAN, MAGENTA], 3.4, 1.0)
+            m.set_stroke([CYAN, MAGENTA], 3.4, wvis.get_value())
         wave_upd(wave)
         wave.add_updater(wave_upd)
         self.add(wave)
@@ -743,6 +784,7 @@ class Act1(FilmScene):
         d_fade = [FadeOut(m, run_time=0.4) for m in self.d_objs]
         ev = [
             (21.0, AnimationGroup(*d_fade)),
+            (21.0, tw(self.barvis, 0.0, 0.4)),
             (21.0, FadeOut(self.c8, run_time=0.3)),
             (21.0, tw(tr["vCurve"], 0.0, 0.4)),
             (21.0, tw(tr["vStems"], 0.0, 0.4)),
@@ -753,10 +795,10 @@ class Act1(FilmScene):
             (21.5, LaggedStart(*[FadeIn(d, scale=0.2) for d in zero_dots], lag_ratio=0.25, run_time=1.0)),
             (21.5, tw(n_tr, float(len(gam)), 1.0, linear)),
             (22.75, AnimationGroup(FadeOut(z_static, run_time=0.3), FadeOut(zero_dots, run_time=0.3),
-                                   FadeOut(wave, run_time=0.3))),
+                                   tw(wvis, 0.0, 0.3))),
             (23.0, FadeIn(islands, run_time=0.4)),
             (23.4, LaggedStart(Create(b1), Create(b2), Create(b3), lag_ratio=0.3, run_time=0.75)),
-            (24.0, LaggedStart(*[ShowPassingFlash(a.copy().set_stroke(WHITE_, 6, 1.0), time_width=0.7)
+            (23.75, LaggedStart(*[ShowPassingFlash(a.copy().set_stroke(WHITE_, 6, 1.0), time_width=0.7)
                                  for a in (b1, b2, b3)], lag_ratio=0.2, run_time=0.5)),
         ]
         self.timeline(24.3, ev)

@@ -190,33 +190,6 @@ def multipaths(arcs, centre, R, chunk=110):
 class Act5(FilmScene):
     DURATION = BUDGET["act5"]
 
-    def _timed(self, mob, start, dur, fade=0.45, max_op=1.0):
-        """Same as FilmScene._timed but driven by the render clock (renderer.time), so overlays
-        do not drift by one frame per play() call (dt-accumulation loses 1/fps per animation)."""
-        t0 = self.renderer.time
-        mob.set_opacity(0)
-
-        def upd(m):
-            t = self.renderer.time - t0 - start
-            if t < 0:
-                a = 0.0
-            elif t < fade:
-                a = t / fade
-            elif t < dur - fade:
-                a = 1.0
-            elif t < dur:
-                a = (dur - t) / fade
-            else:
-                a = 0.0
-            m.set_opacity(a * max_op)
-            if t >= dur:
-                m.remove_updater(upd)
-                self.remove(m)
-        mob.add_updater(upd)
-        mob.set_z_index(1000)
-        self.add(mob)
-        return mob
-
     def freeze(self, *mobs):
         for m in mobs:
             m.clear_updaters()

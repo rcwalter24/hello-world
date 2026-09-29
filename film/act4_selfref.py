@@ -104,8 +104,9 @@ def bif_data():
         x = r * x * (1 - x)
         row = np.clip(((1 - x) * (H - 1)).astype(int), 0, H - 1)
         np.add.at(acc, (row, col), 1)
-    acc = acc + 0.7 * (np.roll(acc, 1, 0) + np.roll(acc, -1, 0)) + 0.35 * (np.roll(acc, 1, 1) + np.roll(acc, -1, 1))
-    v = 1 - np.exp(-acc * 0.42)
+    pad = np.pad(acc, 1)
+    acc = acc + 0.7 * (pad[:-2, 1:-1] + pad[2:, 1:-1]) + 0.35 * (pad[1:-1, :-2] + pad[1:-1, 2:])
+    v = 1 - np.exp(-acc * 0.06)
     v = np.clip(v * 1.05, 0, 1)
     rgb = np.zeros((H, W, 3))
     rgb[:] = hex_rgb(GOLD)
@@ -300,7 +301,7 @@ class Act4(FilmScene):
             ya = Line(T(0, 0), T(0, 1) + UP * 0.15, stroke_width=1.6, stroke_color=DIM)
             y0 = tick("0", T(0, 0) + LEFT * 0.25)
             y1 = tick("1", T(0, 1) + LEFT * 0.25)
-            xl = tick("x", T(0, 1) + LEFT * 0.25 + UP * 0.45, WHITE_, 22)
+            xl = tick("x", T(0, 1) + RIGHT * 0.3, WHITE_, 22)
             return VGroup(xa, ya, y0, y1, xl)
 
         # ---- bifurcation (gold) --------------------------------------------

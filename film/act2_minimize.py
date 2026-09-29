@@ -65,8 +65,8 @@ def V(u):
 
 def roll_u(t):
     """Damped roll from u=2 to the bottom, gently brought to rest at u=0."""
-    b = 1 - sm((t - 3.5) / 0.9)
-    return 2.0 * np.exp(-0.72 * t) * np.cos(1.25 * t) * b
+    b = 1 - sm((t - 3.3) / 1.1)
+    return 2.0 * np.exp(-0.40 * t) * np.cos(0.90 * t) * b
 
 
 # ---- C: loss landscape -------------------------------------------------------
@@ -395,6 +395,7 @@ class Act2(FilmScene):
         self.pos_fn = lambda: V(u())
 
         fade_f = ValueTracker(0.0)
+        gold_f = ValueTracker(0.0)
 
         def tangent():
             uu = u()
@@ -416,7 +417,7 @@ class Act2(FilmScene):
         def num_upd(m):
             val = 2 * u()
             m.set_value(val)
-            m.set_color(WHITE_ if abs(val) < 0.06 else GOLD)
+            m.set_color(WHITE_ if abs(val) < 0.06 else interpolate_color(col(WHITE_), col(GOLD), gold_f.get_value()))
             m.next_to(lab, RIGHT, buff=0.3)
             m.set_opacity(fade_f.get_value())
         num.add_updater(num_upd)
@@ -427,13 +428,15 @@ class Act2(FilmScene):
         def valley_gold(m, a):
             neon(m, interpolate_color(col(CYAN), col(GOLD), a), 4.0)
 
-        reveal = AnimationGroup(UpdateFromAlphaFunc(fade_f, lambda m, a: m.set_value(a), run_time=0.5),
+        show = UpdateFromAlphaFunc(fade_f, lambda m, a: m.set_value(a), run_time=0.5)
+        reveal = AnimationGroup(UpdateFromAlphaFunc(gold_f, lambda m, a: m.set_value(a), run_time=0.6),
                                 FadeIn(ylab, run_time=0.5),
                                 UpdateFromAlphaFunc(ground, valley_gold, run_time=0.6),
                                 self.recolor(GOLD, 0.6))
         self.add(tan, readout)
         self.play(UpdateFromAlphaFunc(tau, lambda m, a: m.set_value(4.4 * a), run_time=4.4, rate_func=linear),
-                  Succession(Wait(1.5), reveal))                                        # 11.2
+                  Succession(Wait(0.6), show),
+                  Succession(Wait(1.6), reveal))                                        # 11.2
         self.pos_fn = None
         ring = Circle(radius=0.14, stroke_color=WHITE_, stroke_width=3).move_to(V(0))
         self.play(ring.animate(run_time=0.4).scale(4.0).set_stroke(opacity=0),

@@ -59,7 +59,7 @@ class FilmScene(Scene):
         t0 = self.renderer.time
         mob.set_opacity(0)
 
-        def upd(m):
+        def upd(m, dt):   # dt unused, but its presence marks the updater time-based (else static waits freeze)
             t = self.renderer.time - t0 - start
             if t < 0:
                 a = 0.0
@@ -107,7 +107,7 @@ class FilmScene(Scene):
 
     def badge(self, text, color, start=0.0, dur=5.0):
         """Discipline badge under the concept tag (top-left): MATHEMATICS / PHYSICS / COMPUTER SCIENCE."""
-        m = Text(text, font=FONT, font_size=18, color=color, weight=BOLD)
+        m = Text(text.replace(" ", "  "), font=FONT, font_size=18, color=color, weight=BOLD)
         m.to_corner(UL, buff=0.5).shift(DOWN * 0.5)
         return self._timed(m, start, dur, fade=0.35, max_op=0.95)
 
