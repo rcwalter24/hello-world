@@ -54,12 +54,13 @@ class FilmScene(Scene):
 
     # ---- non-blocking overlays ------------------------------------------
     def _timed(self, mob, start, dur, fade=0.45, max_op=1.0):
-        st = {"t": -start}
+        """Overlay fade in/out driven by the render clock (renderer.time), NOT by summing dt
+        (dt-summing loses one frame per play() call and drifts ~1 s over an act)."""
+        t0 = self.renderer.time
         mob.set_opacity(0)
 
-        def upd(m, dt):
-            st["t"] += dt
-            t = st["t"]
+        def upd(m):
+            t = self.renderer.time - t0 - start
             if t < 0:
                 a = 0.0
             elif t < fade:
