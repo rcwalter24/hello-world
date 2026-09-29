@@ -1,0 +1,4 @@
+build/
+output/*.wav
+output/concat.txt
+__pycache__/
