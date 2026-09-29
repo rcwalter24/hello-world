@@ -14,9 +14,11 @@ declare -A DUR=( [act0]=15 [act1]=25 [act2]=30 [act3]=35 [act4]=35 [act5]=28 [ac
 mkdir -p out; : > out/list.txt
 for a in act0 act1 act2 act3 act4 act5 act6; do
   [ -f "${FILES[$a]}" ] || { echo "skip $a (missing)"; continue; }
-  if [ "$Q" = "l" ]; then RES="-ql"; else RES="--resolution 1920,1080 --fps 30"; fi
+  if [ "$Q" = "l" ]; then RES="--resolution 854,480 --fps 30"; QDIR=480p30; else RES="--resolution 1920,1080 --fps 30"; QDIR=1080p30; fi
   $MANIM $RES --disable_caching --media_dir media/$a "${FILES[$a]}" "${CLS[$a]}" >/dev/null
-  SRC=$(find media/$a/videos -name "${CLS[$a]}.mp4" -not -path "*partial*" | head -1)
+  STEM=${FILES[$a]%.py}
+  SRC=$(find "media/$a/videos/$STEM" -name "${CLS[$a]}.mp4" -not -path "*partial*" -path "*${QDIR}*" | head -1)
+  [ -n "$SRC" ] || { echo "no render found for $a"; exit 1; }
   # force exact duration, uniform 1080p30 yuv420p
   ffmpeg -loglevel error -y -i "$SRC" -vf "scale=1920:1080,fps=30,tpad=stop_mode=clone:stop_duration=2,format=yuv420p" \
      -t ${DUR[$a]} -an -c:v libx264 -crf 16 -preset medium out/$a.mp4
